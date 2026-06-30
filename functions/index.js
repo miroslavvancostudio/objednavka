@@ -215,6 +215,8 @@ exports.createCheckoutSession = onRequest({
     }
 
     const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      customer_email: order.email,
       mode: "payment",
       client_reference_id: orderNumber,
       metadata: {
