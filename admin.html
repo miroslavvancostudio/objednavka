@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Admin objednávky - PUTIN</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="container wide">
+  <div class="card">
+    <h1>Objednávky</h1>
+    <div class="subtitle">Jednoduchá administrácia objednávok z Firebase</div>
+
+    <div class="toolbar">
+      <input type="search" id="searchInput" placeholder="Hľadať meno, e-mail, číslo...">
+      <select id="statusFilter">
+        <option value="all">Všetky objednávky</option>
+        <option value="waiting">Čakajú na platbu</option>
+        <option value="paid">Zaplatené</option>
+        <option value="shipped">Odoslané</option>
+        <option value="cancelled">Zrušené</option>
+      </select>
+      <button class="secondary" id="refreshButton">Obnoviť</button>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div id="summary" class="small">Načítavam objednávky...</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Číslo</th>
+          <th>Zákazník</th>
+          <th>Objednávka</th>
+          <th>Suma</th>
+          <th>Platba</th>
+          <th>Stav</th>
+          <th>Doručenie</th>
+          <th>Akcie</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

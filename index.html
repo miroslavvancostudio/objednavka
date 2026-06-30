@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Objednávka knihy PUTIN</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://widget.packeta.com/v6/www/js/library.js"></script>
+</head>
+
+<body>
+<div class="container">
+  <div class="card">
+    <h1>PUTIN</h1>
+    <div class="subtitle">Objednávka knihy PUTIN - slovenská a anglická verzia</div>
+
+    <form id="orderForm">
+      <label for="currency">Mena platby</label>
+      <select id="currency">
+        <option value="EUR">EUR (€)</option>
+        <option value="CZK">CZK (Kč)</option>
+      </select>
+
+      <label>Vyberte knihy</label>
+      <div class="items-grid">
+        <div class="item-name">
+          Slovenská kniha
+          <span>PUTIN - Zbožňovaný. Nenávidený.</span>
+        </div>
+        <input type="number" id="qtySk" min="0" max="100" value="0" aria-label="Počet kusov slovenskej knihy">
+
+        <div class="item-name">
+          Anglická kniha
+          <span>PUTIN - Adored. Hated.</span>
+        </div>
+        <input type="number" id="qtyEn" min="0" max="100" value="0" aria-label="Počet kusov anglickej knihy">
+      </div>
+      <div class="items-note">Môžete objednať slovenskú aj anglickú knihu naraz. Zľava a doprava zdarma sa počítajú zo súčtu všetkých kusov.</div>
+      <div class="items-warning" id="itemsWarning">Vyberte aspoň jednu knihu, inak objednávku nie je možné odoslať.</div>
+
+      <label for="country">Krajina doručenia</label>
+      <select id="country">
+        <option value="sk">Slovensko</option>
+        <option value="cz">Česko</option>
+      </select>
+
+      <label for="shipping">Spôsob doručenia</label>
+      <select id="shipping">
+        <option value="pickup">Packeta / Z-BOX - výdajné miesto</option>
+        <option value="home">Doručenie na adresu</option>
+      </select>
+
+      <div id="packetaBox" class="packeta-box">
+        <button type="button" class="secondary" id="packetaButton">Vybrať výdajné miesto / Z-BOX</button>
+        <div class="selected" id="packetaSelected">Zatiaľ nie je vybrané žiadne výdajné miesto ani Z-BOX.</div>
+
+        <input type="hidden" id="packetaId">
+        <input type="hidden" id="packetaName">
+        <input type="hidden" id="packetaAddress">
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="name">Meno a priezvisko</label>
+          <input type="text" id="name" required>
+        </div>
+        <div>
+          <label for="phone">Telefón</label>
+          <input type="tel" id="phone" required>
+        </div>
+      </div>
+
+      <label for="email">E-mail</label>
+      <input type="email" id="email" required>
+
+      <div id="homeAddressBox">
+        <label for="street">Ulica a číslo</label>
+        <input type="text" id="street">
+
+        <div class="row">
+          <div>
+            <label for="zip">PSČ</label>
+            <input type="text" id="zip">
+          </div>
+          <div>
+            <label for="city">Mesto</label>
+            <input type="text" id="city">
+          </div>
+        </div>
+      </div>
+
+      <div id="pickupAddressNote" class="selected hidden">
+        Pri doručení na výdajné miesto / Z-BOX stačí vybrať miesto Packety. Domácu adresu zákazník vypĺňať nemusí.
+      </div>
+
+      <label for="note">Poznámka k objednávke</label>
+      <textarea id="note" placeholder="Nepovinné"></textarea>
+
+      <label for="payment">Spôsob platby</label>
+      <select id="payment">
+        <option value="bank" selected>Bankový prevod / QR platba</option>
+        <option value="card">Platba kartou</option>
+      </select>
+
+      <label for="discountCode">Zľavový kód</label>
+      <div class="inline-control">
+        <input type="text" id="discountCode" placeholder="Nepovinné">
+        <button type="button" class="secondary compact" id="applyDiscountButton">Použiť</button>
+      </div>
+      <div class="discount-message" id="discountMessage"></div>
+
+      <div class="summary">
+        Objednané knihy: <div class="items-summary" id="itemsSummaryText"></div>
+        Cena za kus: <strong><span id="bookPriceText"></span></strong><br>
+        Počet kusov spolu: <strong><span id="qtyText">0</span></strong><br>
+        Medzisúčet za knihy: <strong><span id="booksSubtotalText"></span></strong><br>
+        Zľava / výhoda: <strong><span id="discountText">-</span></strong><br>
+        <div id="discountBreakdown" class="discount-breakdown"></div>
+        Doprava: <strong><span id="shippingPrice"></span></strong>
+        <div class="total">Spolu: <span id="total"></span></div>
+        <div class="price-note">Doprava zdarma pri objednávke od 5 kusov.</div>
+      </div>
+
+      <button type="button" class="primary" id="submitButton" disabled>Odoslať objednávku</button>
+
+      <div class="successbox" id="successBox">
+        <strong>Objednávka bola prijatá.</strong><br>
+        Číslo objednávky / variabilný symbol:
+        <strong><span id="orderNumberText"></span></strong><br>
+        Platobné údaje a QR kód nájdete nižšie. Potvrdenie objednávky bolo odoslané aj na zadaný e-mail.
+      </div>
+
+      <div class="errorbox" id="errorBox"></div>
+
+      <div class="bankbox" id="bankBox">
+        <strong>Platba bankovým prevodom</strong><br>
+        Číslo objednávky / VS: <strong><span id="bankOrderNumber"></span></strong><br>
+        IBAN: <strong><span id="bankIban"></span></strong><br>
+        <span id="czAccountLine"></span>
+        Príjemca: <strong><span id="bankRecipient"></span></strong><br>
+        Suma: <strong><span id="bankTotal"></span></strong><br>
+        Správa pre príjemcu: <strong><span id="paymentMessage">kniha:</span></strong><br>
+
+        <div id="qrCode" class="qr-code">
+          <img id="qrImage" alt="PAY by square QR kód pre platbu">
+        </div>
+        <div id="qrNote" class="note"></div>
+
+        <p class="note">
+          Pri platbe uveďte variabilný symbol. Správu pre príjemcu ponechajte v uvedenom tvare - pomáha rýchlo rozpoznať meno zákazníka vo výpise z účtu.
+        </p>
+      </div>
+
+      <p class="note">
+        Objednávky tlačenej knihy zatiaľ prijímame iba pre Slovensko a Česko.
+        Mena platby je nezávislá od krajiny doručenia.
+      </p>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
