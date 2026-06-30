@@ -931,7 +931,6 @@ async function createOrderEmails(orderData) {
     <p><strong>Mena:</strong> ${orderData.currency}</p>
     <p><strong>Cena za kus:</strong> ${orderData.bookPrice} ${orderData.currency}</p>
     <p><strong>Medzisúčet za knihy:</strong> ${orderData.booksSubtotal} ${orderData.currency}</p>
-    <p><strong>Zľava / výhoda:</strong> ${orderData.discountText}</p>
     <p><strong>Doprava:</strong> ${orderData.shippingPrice === 0 ? "zdarma" : orderData.shippingPrice + " " + orderData.currency}</p>
     <p><strong>Spolu:</strong> ${orderData.total} ${orderData.currency}</p>
     <hr>
