@@ -10,7 +10,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const card = document.querySelector(".card");
   if (!card) return;
 
-  if (payment === "success") {
+  if (payment && payment.startsWith("success")) {
     card.innerHTML = `
       <h1>✅ Ďakujeme za Vašu objednávku!</h1>
       <p><strong>Platba bola úspešne prijatá.</strong></p>
@@ -24,7 +24,7 @@ window.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  if (payment === "cancel") {
+  if (payment && payment.startsWith("cancel")) {
     card.innerHTML = `
       <h1>Platba bola zrušená</h1>
       <p>Objednávka nebola dokončená, pretože platba neprebehla.</p>
