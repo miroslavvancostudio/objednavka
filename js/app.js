@@ -1,3 +1,41 @@
+
+// Zobrazenie výsledku platby po návrate zo Stripe
+window.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  const payment = params.get("payment");
+  const orderNumber = params.get("orderNumber");
+
+  if (!payment) return;
+
+  const card = document.querySelector(".card");
+  if (!card) return;
+
+  if (payment === "success") {
+    card.innerHTML = `
+      <h1>✅ Ďakujeme za Vašu objednávku!</h1>
+      <p><strong>Platba bola úspešne prijatá.</strong></p>
+      <p>Objednávka${orderNumber ? " č. <strong>" + orderNumber + "</strong>" : ""} bola zaevidovaná.</p>
+      <p>Vašu zásielku pripravíme na odoslanie. Po odoslaní Vám pošleme ďalšie informácie o doručení.</p>
+      <p>V prípade otázok nás kontaktujte na:</p>
+      <p><strong>mv.studio.slovakia@gmail.com</strong></p>
+      <p style="margin-top:24px;">
+        <a href="index.html" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Objednať ďalšie knihy</a>
+      </p>
+    `;
+  }
+
+  if (payment === "cancel") {
+    card.innerHTML = `
+      <h1>Platba bola zrušená</h1>
+      <p>Objednávka nebola dokončená, pretože platba neprebehla.</p>
+      <p>Môžete sa vrátiť späť a objednávku skúsiť znova.</p>
+      <p style="margin-top:24px;">
+        <a href="index.html" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Späť na objednávku</a>
+      </p>
+    `;
+  }
+});
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getFirestore,
