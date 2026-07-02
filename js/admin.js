@@ -224,8 +224,60 @@ function markPaid(id) {
   patchOrder(id, { paymentStatus: "paid", paid: true, paidAt: serverTimestamp() }, "Objednávka označená ako zaplatená.");
 }
 
-function markShipped(id) {
-  patchOrder(id, { status: "shipped", shipped: true, shippedAt: serverTimestamp() }, "Objednávka označená ako odoslaná.");
+async function markShipped(id) {
+  const trackingNumber = prompt("Zadajte podacie číslo / tracking zásielky:");
+  if (trackingNumber === null) return;
+
+  const tracking = trackingNumber.trim();
+  if (!tracking) {
+    showMessage("Tracking číslo nebolo zadané.", "danger");
+    return;
+  }
+
+  try {
+    const orderRef = doc(db, "orders", id);
+    const orderSnap = await getDoc(orderRef);
+
+    if (!orderSnap.exists()) {
+      showMessage("Objednávka neexistuje.", "danger");
+      return;
+    }
+
+    const order = orderSnap.data();
+
+    await updateDoc(orderRef, {
+      status: "shipped",
+      shipped: true,
+      shippedAt: serverTimestamp(),
+      trackingNumber: tracking,
+      carrier: "Packeta"
+    });
+
+    if (order.email) {
+      await addDoc(collection(db, "mail"), {
+        to: [order.email],
+        message: {
+          subject: "Objednávka " + id + " bola odoslaná",
+          html: `
+            <h2>Vaša objednávka bola odoslaná</h2>
+            <p>Dobrý deň, ${escapeHtml(order.customerName || "")},</p>
+            <p>vaša objednávka <strong>${escapeHtml(id)}</strong> bola odoslaná.</p>
+            <p><strong>Dopravca:</strong> Packeta</p>
+            <p><strong>Podacie / sledovacie číslo:</strong> ${escapeHtml(tracking)}</p>
+            <p>Zásielku môžete sledovať cez systém Packeta alebo podľa informácií, ktoré vám doručí dopravca.</p>
+            <p>S pozdravom<br>Miroslav Vančo Studio</p>
+          `
+        },
+        createdAt: serverTimestamp()
+      });
+    }
+
+    showMessage("Objednávka označená ako odoslaná a zákazníkovi bol pripravený e-mail.", "success");
+    loadOrders();
+  } catch (error) {
+    console.error(error);
+    showMessage("Objednávku sa nepodarilo označiť ako odoslanú.", "danger");
+  }
 }
 
 function cancelOrder(id) {
