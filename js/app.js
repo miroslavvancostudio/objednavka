@@ -1,6 +1,6 @@
 
 // Zobrazenie výsledku platby po návrate zo Stripe
-window.addEventListener("DOMContentLoaded", () => {
+setTimeout(() => {
   const params = new URLSearchParams(window.location.search);
   const payment = params.get("payment");
   const orderNumber = params.get("orderNumber");
@@ -34,7 +34,7 @@ window.addEventListener("DOMContentLoaded", () => {
       </p>
     `;
   }
-});
+}, 0);
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
