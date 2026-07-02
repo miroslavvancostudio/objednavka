@@ -13,6 +13,7 @@ const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
 const FRONTEND_SUCCESS_URL = defineSecret("FRONTEND_SUCCESS_URL");
 const FRONTEND_CANCEL_URL = defineSecret("FRONTEND_CANCEL_URL");
+const PACKETA_API_PASSWORD = defineSecret("PACKETA_API_PASSWORD");
 
 // Nastavi zakladne CORS hlavicky pre volanie zo statickeho frontendu.
 function setCorsHeaders(response) {
@@ -373,5 +374,130 @@ exports.stripeWebhook = onRequest({
   } catch (error) {
     logger.error(error);
     response.status(500).send(error.message || "Webhook sa nepodarilo spracovat.");
+  }
+});
+
+
+function xmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function xmlValue(xml, tag) {
+  const match = xml.match(new RegExp("<" + tag + ">([\\s\\S]*?)</" + tag + ">"));
+  return match ? match[1].trim() : "";
+}
+
+// Vytvorenie zásielky v Packete pre výdajné miesto / Z-BOX.
+exports.createPacketaPacket = onRequest({ secrets: [PACKETA_API_PASSWORD] }, async (request, response) => {
+  setCorsHeaders(response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).send("");
+    return;
+  }
+
+  try {
+    const { orderNumber } = request.body || {};
+    if (!orderNumber) {
+      response.status(400).json({ error: "Chýba orderNumber." });
+      return;
+    }
+
+    const orderRef = db.collection("orders").doc(String(orderNumber));
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      response.status(404).json({ error: "Objednávka neexistuje." });
+      return;
+    }
+
+    const order = orderSnap.data();
+
+    const addressId =
+      order.packetaId ||
+      order.packetaBranchId ||
+      order.packetaPointId ||
+      order.packetaAddressId;
+
+    if (!addressId) {
+      response.status(400).json({
+        error: "Objednávka nemá vybrané výdajné miesto / Z-BOX Packety."
+      });
+      return;
+    }
+
+    const nameParts = String(order.customerName || "").trim().split(/\s+/);
+    const surname = nameParts.length > 1 ? nameParts.pop() : "";
+    const name = nameParts.join(" ") || order.customerName || "Zakaznik";
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<createPacket>
+  <apiPassword>${xmlEscape(PACKETA_API_PASSWORD.value())}</apiPassword>
+  <packetAttributes>
+    <number>${xmlEscape(orderNumber)}</number>
+    <name>${xmlEscape(name)}</name>
+    <surname>${xmlEscape(surname)}</surname>
+    <email>${xmlEscape(order.email || "")}</email>
+    <phone>${xmlEscape(order.phone || "")}</phone>
+    <addressId>${xmlEscape(addressId)}</addressId>
+    <value>${xmlEscape(order.total || order.totalAmount || 0)}</value>
+    <currency>${xmlEscape(order.currency || "EUR")}</currency>
+    <eshop>Miroslav Vanco Studio</eshop>
+    <weight>0.3</weight>
+  </packetAttributes>
+</createPacket>`;
+
+    const apiResponse = await fetch("https://www.zasilkovna.cz/api/rest", {
+      method: "POST",
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
+      body: xml
+    });
+
+    const responseText = await apiResponse.text();
+
+    const status = xmlValue(responseText, "status");
+    const packetId = xmlValue(responseText, "id");
+    const barcode = xmlValue(responseText, "barcode") || packetId;
+    const fault = xmlValue(responseText, "fault") || xmlValue(responseText, "string") || "";
+
+    if (!apiResponse.ok || status.toLowerCase() !== "ok") {
+      await orderRef.update({
+        packetaExportStatus: "error",
+        packetaError: responseText,
+        packetaExportedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      response.status(500).json({
+        error: fault || "Packeta zásielku nevytvorila.",
+        raw: responseText
+      });
+      return;
+    }
+
+    await orderRef.update({
+      packetaExportStatus: "created",
+      packetId,
+      trackingNumber: barcode,
+      carrier: "Packeta",
+      status: "shipped",
+      shipped: true,
+      shippedAt: admin.firestore.FieldValue.serverTimestamp(),
+      packetaExportedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    response.json({
+      ok: true,
+      packetId,
+      trackingNumber: barcode,
+      message: "Zásielka bola vytvorená v Packete."
+    });
+  } catch (error) {
+    logger.error(error);
+    response.status(500).json({ error: error.message || "Packeta chyba." });
   }
 });
