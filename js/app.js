@@ -278,11 +278,25 @@ function getBookDiscount() {
   }
 
   if (discount.type === "percent") {
-    return { amount: roundMoney(booksSubtotal * (Number(discount.value) / 100)), discount };
+    return {
+      amount: roundMoney(booksSubtotal * (Number(discount.value) / 100)),
+      discount
+    };
   }
 
-  return { amount: roundMoney(Math.min(Number(discount.value), booksSubtotal)), discount };
+  if (discount.perItem === true) {
+    return {
+      amount: roundMoney(Math.min(Number(discount.value) * getQuantity(), booksSubtotal)),
+      discount
+    };
+  }
+
+  return {
+    amount: roundMoney(Math.min(Number(discount.value), booksSubtotal)),
+    discount
+  };
 }
+
 
 function getShippingDiscount() {
   const shippingPrice = getShippingPrice();
@@ -488,6 +502,7 @@ async function applyDiscountCode() {
         title: discount.title || "",
         type: discount.type,
         value: Number(discount.value),
+        perItem: discount.perItem === true,
         note: discount.note || "",
         usageLimit: discount.usageLimit ?? null,
         usedCount: Number(discount.usedCount || 0),
