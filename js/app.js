@@ -840,7 +840,7 @@ function buildCloudFunctionOrderPayload() {
   const shipping = document.getElementById("shipping").value;
   const method = shipping === "pickup" ? "packetaPickup" : "packetaAddress";
   const payment = document.getElementById("payment").value;
-  const discountCode = appliedDiscounts.length ? appliedDiscounts[0].code : "";
+  const discountCodes = appliedDiscounts.map(discount => discount.code);
 
   return {
     orderType: "physical",
@@ -890,7 +890,8 @@ function buildCloudFunctionOrderPayload() {
         total: getTotalNumber(),
         shippingConfigured: true
       },
-      discountCode
+      discountCodes,
+      discountCode: discountCodes.join(", ")
     }
   };
 }
