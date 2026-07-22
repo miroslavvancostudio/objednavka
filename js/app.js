@@ -68,6 +68,7 @@ const db = getFirestore(firebaseApp);
 
 // Packeta zostáva napojená cez pôvodný API kľúč.
 const PACKETA_API_KEY = "6a29cb20b2ac689f";
+const CREATE_SHOP_V2_ORDER_FUNCTION_URL = "https://us-central1-mvstudio-orders.cloudfunctions.net/createShopV2Order";
 const STRIPE_CHECKOUT_FUNCTION_URL = "https://us-central1-mvstudio-orders.cloudfunctions.net/createCheckoutSession";
 const COUNT_DISCOUNT_USAGE_FUNCTION_URL = "https://us-central1-mvstudio-orders.cloudfunctions.net/countDiscountUsage";
 
@@ -809,6 +810,112 @@ async function countDiscountUsage(orderNumber) {
   }
 }
 
+function splitCustomerName(fullName) {
+  const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: parts[0] };
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1]
+  };
+}
+
+function getOrderIdempotencyKey() {
+  const keyName = "mvsOriginalOrderIdempotencyKey";
+  let key = sessionStorage.getItem(keyName);
+  if (!key) {
+    key = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    sessionStorage.setItem(keyName, key);
+  }
+  return key;
+}
+
+function resetOrderIdempotencyKey() {
+  sessionStorage.removeItem("mvsOriginalOrderIdempotencyKey");
+}
+
+function buildCloudFunctionOrderPayload() {
+  const customerName = splitCustomerName(document.getElementById("name").value.trim());
+  const country = document.getElementById("country").value === "cz" ? "CZ" : "SK";
+  const shipping = document.getElementById("shipping").value;
+  const method = shipping === "pickup" ? "packetaPickup" : "packetaAddress";
+  const payment = document.getElementById("payment").value;
+  const discountCode = appliedDiscounts.length ? appliedDiscounts[0].code : "";
+
+  return {
+    orderType: "physical",
+    currency: currentCurrency(),
+    idempotencyKey: getOrderIdempotencyKey(),
+    customer: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim()
+    },
+    companyPurchase: false,
+    company: {},
+    delivery: {
+      country,
+      method,
+      address: {
+        street: document.getElementById("street").value.trim(),
+        postalCode: document.getElementById("zip").value.trim(),
+        city: document.getElementById("city").value.trim()
+      },
+      pickupPoint: {
+        id: document.getElementById("packetaId").value,
+        name: document.getElementById("packetaName").value,
+        address: document.getElementById("packetaAddress").value
+      },
+      shippingPriceField: null
+    },
+    paymentMethod: payment,
+    invoiceRequested: false,
+    cart: {
+      paperbacks: {
+        sk: quantityFromInput("qtySk"),
+        cs: 0,
+        en: quantityFromInput("qtyEn")
+      },
+      digitalProducts: {
+        ebook: { sk: false, cs: false, en: false },
+        audiobook: { sk: false, cs: false, en: false },
+        bundle: { sk: false, cs: false, en: false }
+      },
+      totals: {
+        productSubtotal: getBooksSubtotalNumber(),
+        volumeDiscount: 0,
+        codeDiscount: getBookDiscount().amount,
+        shipping: getDiscountedShippingPrice(),
+        total: getTotalNumber(),
+        shippingConfigured: true
+      },
+      discountCode
+    }
+  };
+}
+
+async function createOrderViaCloudFunction() {
+  const response = await fetch(CREATE_SHOP_V2_ORDER_FUNCTION_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildCloudFunctionOrderPayload())
+  });
+
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+
+  if (!response.ok || data.success !== true || !data.orderNumber) {
+    throw new Error(data.error || "Objednávku sa nepodarilo vytvoriť.");
+  }
+
+  return data;
+}
+
 function validateOrder() {
   const shipping = document.getElementById("shipping").value;
 
@@ -1045,18 +1152,19 @@ async function submitOrder() {
   if (!validateOrder()) return;
 
   const payment = document.getElementById("payment").value;
-  const orderNumber = await generateOrderNumber();
-  lastOrderNumber = orderNumber;
   const submitButton = document.getElementById("submitButton");
 
   submitButton.disabled = true;
   submitButton.textContent = payment === "card" ? "Pripravujem platbu kartou..." : "Odosielam objednávku...";
 
   try {
-    await saveOrderToFirestore(orderNumber);
+    const orderResult = await createOrderViaCloudFunction();
+    const orderNumber = orderResult.orderNumber;
+    lastOrderNumber = orderNumber;
 
     if (payment === "card") {
       const checkoutUrl = await createStripeCheckoutSession(orderNumber);
+      resetOrderIdempotencyKey();
       window.location.href = checkoutUrl;
       return;
     }
@@ -1068,6 +1176,7 @@ async function submitOrder() {
 
     submitButton.textContent = "Objednávka odoslaná";
     submitButton.disabled = true;
+    resetOrderIdempotencyKey();
 
     document.getElementById("successBox").scrollIntoView({
       behavior: "smooth",
