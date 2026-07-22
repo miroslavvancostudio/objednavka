@@ -75,8 +75,6 @@ const COUNT_DISCOUNT_USAGE_FUNCTION_URL = "https://us-central1-mvstudio-orders.c
 const priceSettings = {
   EUR: {
     bookPrice: 19.90,
-    pickup: 4,
-    home: 5,
     symbol: "€",
     currency: "EUR",
     ibanDisplay: "SK56 5600 0000 0010 0869 8006",
@@ -86,14 +84,23 @@ const priceSettings = {
   },
   CZK: {
     bookPrice: 499,
-    pickup: 125,
-    home: 150,
     symbol: "Kč",
     currency: "CZK",
     ibanDisplay: "CZ12 2010 0000 0027 0007 4413",
     ibanRaw: "CZ1220100000002700074413",
     recipient: "Miroslav Vančo",
     accountNote: "Číslo účtu: <strong>2700074413 / 2010</strong><br>"
+  }
+};
+
+const shippingPrices = {
+  sk: {
+    EUR: { pickup: 4, home: 5 },
+    CZK: { pickup: 100, home: 125 }
+  },
+  cz: {
+    EUR: { pickup: 5, home: 6 },
+    CZK: { pickup: 125, home: 150 }
   }
 };
 
@@ -106,6 +113,12 @@ function currentCurrency() {
 
 function currentSettings() {
   return priceSettings[currentCurrency()];
+}
+
+function currentShippingSettings() {
+  const country = document.getElementById("country").value;
+  const currency = currentCurrency();
+  return shippingPrices[country]?.[currency] || shippingPrices.sk[currency];
 }
 
 function money(value) {
@@ -259,7 +272,7 @@ function getUnitBookPrice() {
 }
 
 function getShippingPrice() {
-  const settings = currentSettings();
+  const settings = currentShippingSettings();
   const quantity = getQuantity();
   const shipping = document.getElementById("shipping").value;
 
