@@ -169,6 +169,7 @@ function quantityFromInput(id) {
 function getItemQuantities() {
   return {
     sk: quantityFromInput("qtySk"),
+    cz: quantityFromInput("qtyCz"),
     en: quantityFromInput("qtyEn")
   };
 }
@@ -177,7 +178,7 @@ function getOrderItems() {
   const q = getItemQuantities();
   const allItems = [
     {
-      productId: "putin",
+      productId: "putin-paperback-sk",
       productName: "PUTIN - Zbožňovaný. Nenávidený.",
       languageCode: "sk",
       language: "Slovenčina",
@@ -185,7 +186,15 @@ function getOrderItems() {
       quantity: q.sk
     },
     {
-      productId: "putin",
+      productId: "putin-paperback-cz",
+      productName: "PUTIN - Zbožňovaný. Nenáviděný.",
+      languageCode: "cz",
+      language: "Čeština",
+      format: "paperback",
+      quantity: q.cz
+    },
+    {
+      productId: "putin-paperback-en",
       productName: "PUTIN - Adored. Hated.",
       languageCode: "en",
       language: "English",
@@ -199,7 +208,7 @@ function getOrderItems() {
 
 function getQuantity() {
   const q = getItemQuantities();
-  return q.sk + q.en;
+  return q.sk + q.cz + q.en;
 }
 
 function getItemsSummaryText() {
@@ -874,7 +883,7 @@ function buildCloudFunctionOrderPayload() {
     cart: {
       paperbacks: {
         sk: quantityFromInput("qtySk"),
-        cs: 0,
+        cs: quantityFromInput("qtyCz"),
         en: quantityFromInput("qtyEn")
       },
       digitalProducts: {
@@ -1193,6 +1202,7 @@ async function submitOrder() {
 
 // Po načítaní stránky zapojíme ovládanie formulára.
 document.getElementById("qtySk").addEventListener("input", calculateTotal);
+document.getElementById("qtyCz").addEventListener("input", calculateTotal);
 document.getElementById("qtyEn").addEventListener("input", calculateTotal);
 document.getElementById("shipping").addEventListener("change", toggleShipping);
 document.getElementById("currency").addEventListener("change", updateAll);
